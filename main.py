@@ -167,13 +167,13 @@ if not url_is_done:
                         print('获取第 ', tmp_page_num, ' 页的图片URL失败！')
                         continue
                 r_c_list = json.loads(r_c.text)
-                if type(r_c_list) is list:
+                if type(r_c_list) is list and len(r_c_list) > 0:
                     lock.acquire()
                     try:
                         save_url_to_db(r_c_list)
                         cursor.execute('UPDATE status SET page=? WHERE id=1;', (tmp_page_num + 1,))
                         db.commit()  # 写入数据库
-                        print('在数据库中添加了 ' + str(len(r_c_list)) + ' 条记录')
+                        print('在数据库中添加了 ' + str(len(r_c_list)) + ' 条记录,现在共有 ' + str(get_num) + ' 条')
                         get_num += len(r_c_list)
                     finally:
                         lock.release()
@@ -191,6 +191,7 @@ if not url_is_done:
     else:
         def get_url_all():
             global page_num
+            get_num = 0
             while True:
                 lock.acquire()
                 tmp_page_num = page_num
@@ -205,13 +206,14 @@ if not url_is_done:
                         print('获取第 ', tmp_page_num, ' 页的图片URL失败！')
                         continue
                 r_a_list = json.loads(r_a.text)
-                if type(r_a_list) is list:
+                if type(r_a_list) is list and len(r_a_list) > 0:
                     lock.acquire()
                     try:
                         save_url_to_db(r_a_list)
                         cursor.execute('UPDATE status SET page=? WHERE id=1;', (tmp_page_num + 1,))
                         db.commit()  # 写入数据库
-                        print('在数据库中添加了 ' + str(len(r_a_list)) + ' 条记录')
+                        print('在数据库中添加了 ' + str(len(r_a_list)) + ' 条记录,现在共有 ' + str(get_num) + ' 条')
+                        get_num += len(r_a_list)
                     finally:
                         lock.release()
                 else:
@@ -280,12 +282,12 @@ def download_photo():
             r_img = requests.get(photo_info[size_url], headers=headers)
             if r_img.status_code == 200:
                 image_type = r_img.headers['Content-Type'].split('/')[-1]
-                tmp_name = photo_info[3].split('/')[-1]
-                if tmp_name.find('.') > 0:
-                    image_name = tmp_name
+                tmp_name = photo_info[3].split('/')[-1].split('?ixlib=')[0]
+                if tmp_name.find('.' + image_type) > 0:
+                    image_name = tmp_name.split('.' + image_type)[0]
                 else:
                     image_name = tmp_name + '.' + image_type
-                with open(os.path.join(save_path, image_name), 'wb') as img:
+                with open('E:\\Unsplash-Crawler\\Photos\\' + image_name, 'wb') as img:
                     img.write(r_img.content)
                     lock.acquire()
                     try:
